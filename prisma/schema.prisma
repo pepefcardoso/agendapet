@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +10,46 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ENUMS
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum PetSize {
+  PEQUENO
+  MEDIO
+  GRANDE
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum SubscriptionPlanStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  PIX
+}
+
+
+// MODELS
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -15,9 +58,173 @@ model User {
   role      Role     @default(EMPLOYEE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("users")
 }
 
-enum Role {
-  ADMIN
-  EMPLOYEE
+model PetShop {
+  id             String    @id @default(cuid())
+  name           String
+  logo           String?
+  address        String?
+  phone          String?
+  workingHours   Json?     // Ex: { "monday": { "open": "09:00", "close": "18:00" }, ... }
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("pet_shops")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  duration    Int      // Duration in minutes
+  price       Decimal
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointments      Appointment[]
+  subscriptionCredits SubscriptionCredit[]
+
+  @@map("services")
+}
+
+model Client {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  whatsapp     String?
+  email        String?  @unique
+  accessCode   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pets                Pet[]
+  appointments        Appointment[]
+  subscriptionStatus  SubscriptionStatus?
+  subscriptionCredits SubscriptionCredit[]
+  payments            Payment[]
+
+  @@map("clients")
+}
+
+model Pet {
+  id        String   @id @default(cuid())
+  name      String
+  breed     String?
+  size      PetSize
+  notes     String?
+  clientId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+
+  @@map("pets")
+}
+
+model Appointment {
+  id                 String            @id @default(cuid())
+  clientId           String
+  petId              String
+  date               DateTime
+  status             AppointmentStatus @default(PENDING)
+  notes              String?
+  isFromSubscription Boolean           @default(false)
+  usedCredits        Json?             // Ex: [{ "serviceId": "...", "creditsUsed": 1 }]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  client   Client    @relation(fields: [clientId], references: [id])
+  pet      Pet       @relation(fields: [petId], references: [id])
+  services Service[]
+  payment  Payment?
+
+  @@map("appointments")
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  name        String
+  price       Decimal
+  description String?
+  credits     Json     // Ex: [{ "serviceId": "...", "quantity": 2 }]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptionStatus SubscriptionStatus[]
+  subscriptionCredits SubscriptionCredit[]
+
+
+  @@map("subscription_plans")
+}
+
+model SubscriptionStatus {
+  id           String                 @id @default(cuid())
+  clientId     String                 @unique
+  planId       String
+  planName     String
+  status       SubscriptionPlanStatus @default(ACTIVE)
+  startDate    DateTime
+  renewalDate  DateTime
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  client Client           @relation(fields: [clientId], references: [id])
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@map("subscription_statuses")
+}
+
+model SubscriptionCredit {
+  id                String   @id @default(cuid())
+  clientId          String
+  planId            String
+  serviceId         String
+  serviceName       String
+  totalCredits      Int
+  usedCredits       Int      @default(0)
+  remainingCredits  Int
+  renewalDate       DateTime
+  createdAt         DateTime @default(now())
+
+  client  Client           @relation(fields: [clientId], references: [id])
+  plan    SubscriptionPlan @relation(fields: [planId], references: [id])
+  service Service          @relation(fields: [serviceId], references: [id])
+
+
+  @@map("subscription_credits")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  appointmentId   String?       @unique
+  clientId        String
+  petName         String
+  serviceName     String
+  date            DateTime
+  amount          Decimal
+  status          PaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod
+  mercadoPagoId   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  client      Client       @relation(fields: [clientId], references: [id])
+
+  @@map("payments")
+}
+
+model PaymentSettings {
+  id                      String   @id @default(cuid())
+  mercadoPagoAccessToken  String
+  isActive                Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("payment_settings")
 }
