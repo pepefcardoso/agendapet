@@ -30,7 +30,6 @@ export async function GET() {
       orderBy: {
         name: "asc",
       },
-      // Inclui os dados do cliente relacionado em cada pet
       include: {
         client: {
           select: {

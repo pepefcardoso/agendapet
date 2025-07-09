@@ -1,5 +1,3 @@
-// src/components/services/ServiceList.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
