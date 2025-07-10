@@ -5,13 +5,13 @@ const prisma = new PrismaClient();
 
 /**
  * @swagger
- * /api/clients/{clientId}/appointments:
+ * /api/clients/{id}/appointments:
  * get:
  * summary: Lista os agendamentos de um cliente específico
  * tags: [Clients, Appointments]
  * parameters:
  * - in: path
- * name: clientId
+ * name: id
  * required: true
  * schema:
  * type: string
@@ -27,7 +27,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id: clientId } = params;
+    const { id: clientId } = params; // O parâmetro agora é 'id'
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -42,7 +42,7 @@ export async function GET(
       },
     });
 
-    if (!appointments) {
+    if (!appointments || appointments.length === 0) {
       return NextResponse.json(
         { message: "Nenhum agendamento encontrado para este cliente." },
         { status: 404 }
