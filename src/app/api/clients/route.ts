@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { z } from "zod";
 
 const prisma = new PrismaClient();
@@ -22,17 +22,29 @@ const createClientSchema = z.object({
  * /api/clients:
  * get:
  * summary: Lista todos os clientes
- * description: Retorna uma lista de todos os clientes cadastrados.
+ * description: Retorna uma lista de todos os clientes. Pode incluir os pets se o parâmetro `includePets` for `true`.
  * tags: [Clients]
+ * parameters:
+ * - in: query
+ * name: includePets
+ * schema:
+ * type: boolean
+ * description: Se verdadeiro, inclui a lista de pets de cada cliente.
  * responses:
  * 200:
  * description: Lista de clientes retornada com sucesso.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const includePets = searchParams.get("includePets") === "true";
+
   try {
     const clients = await prisma.client.findMany({
       orderBy: {
         name: "asc",
+      },
+      include: {
+        pets: includePets,
       },
     });
     return NextResponse.json(clients);
@@ -44,34 +56,6 @@ export async function GET() {
   }
 }
 
-/**
- * @swagger
- * /api/clients:
- * post:
- * summary: Cria um novo cliente
- * description: Adiciona um novo cliente ao banco de dados.
- * tags: [Clients]
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * name:
- * type: string
- * phone:
- * type: string
- * email:
- * type: string
- * whatsapp:
- * type: string
- * responses:
- * 201:
- * description: Cliente criado com sucesso.
- * 400:
- * description: Dados inválidos.
- */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
