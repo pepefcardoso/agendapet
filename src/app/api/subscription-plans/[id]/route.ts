@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const prisma = new PrismaClient();
@@ -28,7 +28,7 @@ const updateSubscriptionPlanSchema = z.object({
 });
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -53,7 +53,7 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -99,7 +99,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

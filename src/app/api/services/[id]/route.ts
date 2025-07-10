@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const prisma = new PrismaClient();
@@ -19,22 +19,8 @@ const serviceSchema = z.object({
   description: z.string().optional(),
 });
 
-/**
- * @swagger
- * /api/services/{id}:
- * get:
- * summary: Busca um serviço pelo ID
- * tags: [Services]
- * parameters:
- * - in: path
- * name: id
- * required: true
- * responses:
- * 200:
- * description: Serviço encontrado.
- */
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -58,28 +44,8 @@ export async function GET(
   }
 }
 
-/**
- * @swagger
- * /api/services/{id}:
- * put:
- * summary: Atualiza um serviço
- * tags: [Services]
- * parameters:
- * - in: path
- * name: id
- * required: true
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * $ref: '#/components/schemas/ServiceUpdate'
- * responses:
- * 200:
- * description: Serviço atualizado com sucesso.
- */
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -116,22 +82,8 @@ export async function PUT(
   }
 }
 
-/**
- * @swagger
- * /api/services/{id}:
- * delete:
- * summary: Deleta um serviço
- * tags: [Services]
- * parameters:
- * - in: path
- * name: id
- * required: true
- * responses:
- * 204:
- * description: Serviço deletado com sucesso.
- */
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

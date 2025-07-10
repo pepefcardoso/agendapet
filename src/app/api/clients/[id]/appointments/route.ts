@@ -1,33 +1,14 @@
 import { PrismaClient } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-/**
- * @swagger
- * /api/clients/{id}/appointments:
- * get:
- * summary: Lista os agendamentos de um cliente específico
- * tags: [Clients, Appointments]
- * parameters:
- * - in: path
- * name: id
- * required: true
- * schema:
- * type: string
- * description: O ID do cliente.
- * responses:
- * 200:
- * description: Lista de agendamentos retornada com sucesso.
- * 404:
- * description: Cliente não encontrado.
- */
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id: clientId } = params; // O parâmetro agora é 'id'
+    const { id: clientId } = params;
 
     const appointments = await prisma.appointment.findMany({
       where: {

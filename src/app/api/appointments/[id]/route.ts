@@ -17,13 +17,10 @@ const updateAppointmentSchema = z.object({
   notes: z.string().optional(),
 });
 
-type RouteContext = {
-  params: {
-    id: string;
-  };
-};
-
-export async function GET(request: NextRequest, { params }: RouteContext) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const appointment = await prisma.appointment.findUnique({
       where: { id: params.id },
@@ -49,7 +46,10 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   }
 }
 
-export async function PUT(request: NextRequest, { params }: RouteContext) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const body = await request.json();
     const validation = updateAppointmentSchema.safeParse(body);
@@ -99,7 +99,10 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteContext) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     await prisma.appointment.delete({
       where: { id: params.id },
