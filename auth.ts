@@ -41,7 +41,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const { phone, accessCode } = parsedCredentials.data;
           const client = await prisma.client.findUnique({ where: { phone } });
 
-          if (client && client.accessCode === accessCode) {
+          if (client && client.accessCode && client.accessCode === accessCode) {
+            await prisma.client.update({
+              where: { id: client.id },
+              data: { accessCode: null },
+            });
+
             return {
               id: client.id,
               name: client.name,
