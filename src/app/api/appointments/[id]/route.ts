@@ -17,12 +17,11 @@ const updateAppointmentSchema = z.object({
   notes: z.string().optional(),
 });
 
-// Correção: Tipagem inline e sem desestruturação direta nos parâmetros
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = context.params;
+  const { id } = params;
   try {
     const appointment = await prisma.appointment.findUnique({
       where: { id: id },
@@ -50,9 +49,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = context.params;
+  const { id } = params;
   try {
     const body = await request.json();
     const validation = updateAppointmentSchema.safeParse(body);
@@ -98,9 +97,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = context.params;
+  const { id } = params;
   try {
     await prisma.appointment.delete({
       where: { id: id },

@@ -15,9 +15,9 @@ const updatePetSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = context.params;
+  const { id } = params;
   try {
     const pet = await prisma.pet.findUnique({ where: { id: id } });
     if (!pet) {
@@ -37,9 +37,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = context.params;
+  const { id } = params;
   try {
     const body = await request.json();
     const validation = updatePetSchema.safeParse(body);
@@ -76,9 +76,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = context.params;
+  const { id } = params;
   try {
     await prisma.pet.delete({ where: { id: id } });
     return new NextResponse(null, { status: 204 });
