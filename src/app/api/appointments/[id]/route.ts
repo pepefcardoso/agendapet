@@ -19,9 +19,16 @@ const updateAppointmentSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Record<string, string | string[]> }
 ) {
-  const { id } = params;
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  if (!id) {
+    return NextResponse.json(
+      { message: "Missing appointment ID." },
+      { status: 400 }
+    );
+  }
+
   try {
     const appointment = await prisma.appointment.findUnique({
       where: { id: id },
@@ -49,9 +56,17 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Record<string, string | string[]> }
 ) {
-  const { id } = params;
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  if (!id) {
+    return NextResponse.json(
+      { message: "Missing appointment ID." },
+      { status: 400 }
+    );
+  }
+
   try {
     const body = await request.json();
     const validation = updateAppointmentSchema.safeParse(body);
@@ -97,9 +112,17 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Record<string, string | string[]> }
 ) {
-  const { id } = params;
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  if (!id) {
+    return NextResponse.json(
+      { message: "Missing appointment ID." },
+      { status: 400 }
+    );
+  }
+
   try {
     await prisma.appointment.delete({
       where: { id: id },
