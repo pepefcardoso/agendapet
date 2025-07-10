@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const prisma = new PrismaClient();
@@ -17,10 +17,13 @@ const updateAppointmentSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+type RouteContext = {
+  params: {
+    id: string;
+  };
+};
+
+export async function GET(request: NextRequest, { params }: RouteContext) {
   try {
     const appointment = await prisma.appointment.findUnique({
       where: { id: params.id },
@@ -46,10 +49,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, { params }: RouteContext) {
   try {
     const body = await request.json();
     const validation = updateAppointmentSchema.safeParse(body);
@@ -99,10 +99,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteContext) {
   try {
     await prisma.appointment.delete({
       where: { id: params.id },
