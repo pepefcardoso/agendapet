@@ -15,12 +15,11 @@ const updatePetSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
-    const pet = await prisma.pet.findUnique({
-      where: { id: params.id },
-    });
+    const pet = await prisma.pet.findUnique({ where: { id: id } });
     if (!pet) {
       return NextResponse.json(
         { message: "Pet não encontrado." },
@@ -38,12 +37,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     const body = await request.json();
     const validation = updatePetSchema.safeParse(body);
-
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -53,12 +52,10 @@ export async function PUT(
         { status: 400 }
       );
     }
-
     const updatedPet = await prisma.pet.update({
-      where: { id: params.id },
+      where: { id: id },
       data: validation.data,
     });
-
     return NextResponse.json(updatedPet);
   } catch (error) {
     if (
@@ -79,12 +76,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
-    await prisma.pet.delete({
-      where: { id: params.id },
-    });
+    await prisma.pet.delete({ where: { id: id } });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (

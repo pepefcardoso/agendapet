@@ -17,13 +17,15 @@ const updateAppointmentSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Correção: Tipagem inline e sem desestruturação direta nos parâmetros
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     const appointment = await prisma.appointment.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         client: { select: { name: true, id: true } },
         pet: { select: { name: true, id: true } },
@@ -48,8 +50,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     const body = await request.json();
     const validation = updateAppointmentSchema.safeParse(body);
@@ -65,19 +68,13 @@ export async function PUT(
     }
 
     const { serviceIds, ...restOfData } = validation.data;
-
-    const dataToUpdate: Prisma.AppointmentUpdateInput = {
-      ...restOfData,
-    };
-
+    const dataToUpdate: Prisma.AppointmentUpdateInput = { ...restOfData };
     if (serviceIds) {
-      dataToUpdate.services = {
-        set: serviceIds.map((id) => ({ id })),
-      };
+      dataToUpdate.services = { set: serviceIds.map((sid) => ({ id: sid })) };
     }
 
     const updatedAppointment = await prisma.appointment.update({
-      where: { id: params.id },
+      where: { id: id },
       data: dataToUpdate,
     });
 
@@ -101,11 +98,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     await prisma.appointment.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
     return new NextResponse(null, { status: 204 });
   } catch (error) {

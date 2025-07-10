@@ -21,20 +21,17 @@ const updateClientSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
-    const client = await prisma.client.findUnique({
-      where: { id: params.id },
-    });
-
+    const client = await prisma.client.findUnique({ where: { id: id } });
     if (!client) {
       return NextResponse.json(
         { message: "Cliente não encontrado." },
         { status: 404 }
       );
     }
-
     return NextResponse.json(client);
   } catch (error) {
     return NextResponse.json(
@@ -46,24 +43,22 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     const body = await request.json();
     const validation = updateClientSchema.safeParse(body);
-
     if (!validation.success) {
       return NextResponse.json(
         { message: "Dados inválidos.", errors: validation.error.formErrors },
         { status: 400 }
       );
     }
-
     const updatedClient = await prisma.client.update({
-      where: { id: params.id },
+      where: { id: id },
       data: validation.data,
     });
-
     return NextResponse.json(updatedClient);
   } catch (error) {
     if (
@@ -84,13 +79,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
-    await prisma.client.delete({
-      where: { id: params.id },
-    });
-
+    await prisma.client.delete({ where: { id: id } });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (

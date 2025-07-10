@@ -21,20 +21,17 @@ const serviceSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
-    const service = await prisma.service.findUnique({
-      where: { id: params.id },
-    });
-
+    const service = await prisma.service.findUnique({ where: { id: id } });
     if (!service) {
       return NextResponse.json(
         { message: "Serviço não encontrado." },
         { status: 404 }
       );
     }
-
     return NextResponse.json(service);
   } catch (error) {
     return NextResponse.json(
@@ -46,24 +43,22 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     const body = await request.json();
     const validation = serviceSchema.safeParse(body);
-
     if (!validation.success) {
       return NextResponse.json(
         { message: "Dados inválidos.", errors: validation.error.formErrors },
         { status: 400 }
       );
     }
-
     const updatedService = await prisma.service.update({
-      where: { id: params.id },
+      where: { id: id },
       data: validation.data,
     });
-
     return NextResponse.json(updatedService);
   } catch (error) {
     if (
@@ -84,13 +79,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
-    await prisma.service.delete({
-      where: { id: params.id },
-    });
-
+    await prisma.service.delete({ where: { id: id } });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (

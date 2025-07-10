@@ -29,20 +29,19 @@ const updateSubscriptionPlanSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     const plan = await prisma.subscriptionPlan.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
-
     if (!plan) {
       return NextResponse.json(
         { message: "Plano de assinatura não encontrado." },
         { status: 404 }
       );
     }
-
     return NextResponse.json(plan);
   } catch (error) {
     return NextResponse.json(
@@ -54,12 +53,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     const body = await request.json();
     const validation = updateSubscriptionPlanSchema.safeParse(body);
-
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -69,17 +68,14 @@ export async function PUT(
         { status: 400 }
       );
     }
-
     const { credits, ...planData } = validation.data;
-
     const updatedPlan = await prisma.subscriptionPlan.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...planData,
         ...(credits && { credits: credits as Prisma.JsonArray }),
       },
     });
-
     return NextResponse.json(updatedPlan);
   } catch (error) {
     if (
@@ -100,11 +96,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   try {
     const existingSubscriptions = await prisma.subscriptionStatus.count({
-      where: { planId: params.id, status: "ACTIVE" },
+      where: { planId: id, status: "ACTIVE" },
     });
 
     if (existingSubscriptions > 0) {
@@ -117,9 +114,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.subscriptionPlan.delete({
-      where: { id: params.id },
-    });
+    await prisma.subscriptionPlan.delete({ where: { id: id } });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (
