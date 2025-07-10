@@ -1,4 +1,4 @@
-import { PrismaClient, AppointmentStatus } from "@prisma/client";
+import { PrismaClient, AppointmentStatus, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ const appointmentSchema = z.object({
     .string()
     .datetime({ message: "A data deve estar no formato ISO 8601." }),
   notes: z.string().optional(),
+  isFromSubscription: z.boolean().optional(),
 });
 
 type WorkingHours = {
@@ -58,115 +59,145 @@ export async function POST(request: Request) {
       );
     }
 
-    const { clientId, petId, serviceIds, date, notes } = validation.data;
-    const newAppointmentStart = new Date(date);
+    const { clientId, petId, serviceIds, date, notes, isFromSubscription } =
+      validation.data;
 
-    const petShopConfig = await prisma.petShop.findFirst();
-    if (!petShopConfig || !petShopConfig.workingHours) {
-      return NextResponse.json(
-        { message: "Configurações de horário do pet shop não encontradas." },
-        { status: 500 }
-      );
-    }
-    const workingHours = petShopConfig.workingHours as WorkingHours;
+    const newAppointment = await prisma.$transaction(async (tx) => {
+      const newAppointmentStart = new Date(date);
 
-    const services = await prisma.service.findMany({
-      where: { id: { in: serviceIds } },
-    });
-    const totalDuration = services.reduce(
-      (acc, service) => acc + service.duration,
-      0
-    );
-    const newAppointmentEnd = new Date(
-      newAppointmentStart.getTime() + totalDuration * 60000
-    );
-
-    const dayOfWeek = newAppointmentStart
-      .toLocaleString("en-US", { weekday: "long" })
-      .toLowerCase();
-    const schedule = workingHours[dayOfWeek];
-
-    if (!schedule || !schedule.open) {
-      return NextResponse.json(
-        { message: `O pet shop está fechado na ${dayOfWeek}.` },
-        { status: 400 }
-      );
-    }
-
-    const timeToMinutes = (time: string) => {
-      const [hours, minutes] = time.split(":").map(Number);
-      return hours * 60 + minutes;
-    };
-
-    const openingTime = timeToMinutes(schedule.start);
-    const closingTime = timeToMinutes(schedule.end);
-    const appointmentStartMinutes =
-      newAppointmentStart.getHours() * 60 + newAppointmentStart.getMinutes();
-    const appointmentEndMinutes = appointmentStartMinutes + totalDuration;
-
-    if (
-      appointmentStartMinutes < openingTime ||
-      appointmentEndMinutes > closingTime
-    ) {
-      return NextResponse.json(
-        {
-          message: `Horário inválido. O funcionamento na ${dayOfWeek} é das ${schedule.start} às ${schedule.end}.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    const dayStart = new Date(newAppointmentStart);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(newAppointmentStart);
-    dayEnd.setHours(23, 59, 59, 999);
-
-    const existingAppointments = await prisma.appointment.findMany({
-      where: {
-        date: { gte: dayStart, lt: dayEnd },
-        status: { notIn: ["CANCELLED"] },
-      },
-      include: { services: true },
-    });
-
-    for (const existing of existingAppointments) {
-      const existingStart = new Date(existing.date);
-      const existingDuration = existing.services.reduce(
-        (acc, s) => acc + s.duration,
-        0
-      );
-      const existingEnd = new Date(
-        existingStart.getTime() + existingDuration * 60000
-      );
-
-      if (
-        newAppointmentStart < existingEnd &&
-        existingStart < newAppointmentEnd
-      ) {
-        return NextResponse.json(
-          {
-            message: `Conflito de horário. Já existe um agendamento entre ${existingStart.toLocaleTimeString()} e ${existingEnd.toLocaleTimeString()}.`,
-          },
-          { status: 409 }
+      const petShopConfig = await tx.petShop.findFirst();
+      if (!petShopConfig || !petShopConfig.workingHours) {
+        throw new Error(
+          "Configurações de horário do pet shop não encontradas."
         );
       }
-    }
+      const workingHours = petShopConfig.workingHours as WorkingHours;
 
-    const newAppointment = await prisma.appointment.create({
-      data: {
-        clientId,
-        petId,
+      const services = await tx.service.findMany({
+        where: { id: { in: serviceIds } },
+      });
+      const totalDuration = services.reduce(
+        (acc, service) => acc + service.duration,
+        0
+      );
+      const newAppointmentEnd = new Date(
+        newAppointmentStart.getTime() + totalDuration * 60000
+      );
+
+      const dayOfWeek = newAppointmentStart
+        .toLocaleString("en-US", { weekday: "long" })
+        .toLowerCase();
+      const schedule = workingHours[dayOfWeek];
+
+      if (!schedule || !schedule.open) {
+        throw new Error(`O pet shop está fechado na ${dayOfWeek}.`);
+      }
+
+      const timeToMinutes = (time: string) => {
+        const [hours, minutes] = time.split(":").map(Number);
+        return hours * 60 + minutes;
+      };
+
+      const openingTime = timeToMinutes(schedule.start);
+      const closingTime = timeToMinutes(schedule.end);
+      const appointmentStartMinutes =
+        newAppointmentStart.getHours() * 60 + newAppointmentStart.getMinutes();
+      const appointmentEndMinutes = appointmentStartMinutes + totalDuration;
+
+      if (
+        appointmentStartMinutes < openingTime ||
+        appointmentEndMinutes > closingTime
+      ) {
+        throw new Error(
+          `Horário inválido. O funcionamento na ${dayOfWeek} é das ${schedule.start} às ${schedule.end}.`
+        );
+      }
+
+      const dayStart = new Date(newAppointmentStart);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(newAppointmentStart);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const existingAppointments = await tx.appointment.findMany({
+        where: {
+          date: { gte: dayStart, lt: dayEnd },
+          status: { notIn: ["CANCELLED"] },
+        },
+        include: { services: true },
+      });
+
+      for (const existing of existingAppointments) {
+        const existingStart = new Date(existing.date);
+        const existingDuration = existing.services.reduce(
+          (acc, s) => acc + s.duration,
+          0
+        );
+        const existingEnd = new Date(
+          existingStart.getTime() + existingDuration * 60000
+        );
+
+        if (
+          newAppointmentStart < existingEnd &&
+          existingStart < newAppointmentEnd
+        ) {
+          throw new Error(
+            `Conflito de horário. Já existe um agendamento entre ${existingStart.toLocaleTimeString()} e ${existingEnd.toLocaleTimeString()}.`
+          );
+        }
+      }
+
+      if (isFromSubscription) {
+        for (const service of services) {
+          const credit = await tx.subscriptionCredit.findFirst({
+            where: {
+              clientId: clientId,
+              serviceId: service.id,
+              remainingCredits: { gt: 0 },
+            },
+          });
+
+          if (!credit) {
+            throw new Error(
+              `Créditos insuficientes para o serviço: ${service.name}.`
+            );
+          }
+
+          await tx.subscriptionCredit.update({
+            where: { id: credit.id },
+            data: {
+              usedCredits: { increment: 1 },
+              remainingCredits: { decrement: 1 },
+            },
+          });
+        }
+      }
+
+      const appointmentData: Prisma.AppointmentCreateInput = {
+        client: { connect: { id: clientId } },
+        pet: { connect: { id: petId } },
+        services: { connect: serviceIds.map((id) => ({ id })) },
         date: newAppointmentStart,
         notes,
-        status: AppointmentStatus.PENDING,
-        services: { connect: serviceIds.map((id) => ({ id })) },
-      },
-      include: { client: true, pet: true, services: true },
+        status: isFromSubscription
+          ? AppointmentStatus.CONFIRMED
+          : AppointmentStatus.PENDING,
+        isFromSubscription: isFromSubscription || false,
+      };
+
+      const createdAppointment = await tx.appointment.create({
+        data: appointmentData,
+        include: { client: true, pet: true, services: true },
+      });
+
+      return createdAppointment;
     });
 
     return NextResponse.json(newAppointment, { status: 201 });
   } catch (error) {
-    console.error(error);
+    console.error("Erro ao criar agendamento:", error);
+    if (error instanceof Error) {
+      return NextResponse.json({ message: error.message }, { status: 409 });
+    }
     return NextResponse.json(
       { message: "Erro ao criar agendamento.", error: String(error) },
       { status: 500 }

@@ -11,6 +11,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
+      id: "credentials-user",
+      name: "User Credentials",
       async authorize(credentials) {
         const parsedCredentials = z
           .object({ email: z.string().email(), password: z.string().min(6) })
@@ -27,5 +29,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return null;
       },
     }),
+    Credentials({
+      id: "credentials-client",
+      name: "Client Credentials",
+      async authorize(credentials) {
+        const parsedCredentials = z
+          .object({ phone: z.string(), accessCode: z.string() })
+          .safeParse(credentials);
+
+        if (parsedCredentials.success) {
+          const { phone, accessCode } = parsedCredentials.data;
+          const client = await prisma.client.findUnique({ where: { phone } });
+
+          if (client && client.accessCode === accessCode) {
+            return {
+              id: client.id,
+              name: client.name,
+              email: client.email,
+              role: "CLIENT",
+            };
+          }
+        }
+        return null;
+      },
+    }),
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+      }
+      return session;
+    },
+  },
 });

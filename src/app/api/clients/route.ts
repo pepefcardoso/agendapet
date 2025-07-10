@@ -37,6 +37,8 @@ const createClientSchema = z.object({
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const includePets = searchParams.get("includePets") === "true";
+  const includeSubscription =
+    searchParams.get("includeSubscription") === "true";
 
   try {
     const clients = await prisma.client.findMany({
@@ -45,12 +47,14 @@ export async function GET(request: NextRequest) {
       },
       include: {
         pets: includePets,
+        subscriptionStatus: includeSubscription,
+        subscriptionCredits: includeSubscription,
       },
     });
     return NextResponse.json(clients);
   } catch (error) {
     return NextResponse.json(
-      { message: "Erro ao buscar clientes.", error },
+      { message: "Erro ao buscar clientes.", error: String(error) },
       { status: 500 }
     );
   }
