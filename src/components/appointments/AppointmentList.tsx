@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Appointment } from "@prisma/client";
 import { AppointmentForm, AppointmentFormValues } from "./AppointmentForm";
-import { Modal } from "../ui/modal";
+import { Modal } from "@/components/ui/Modal";
 import { Calendar, Views, Event } from "react-big-calendar";
 import { localizer } from "@/lib/calendarLocalizer";
 import "react-big-calendar/lib/css/react-big-calendar.css";

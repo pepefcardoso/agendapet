@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { PetForm } from "./PetForm";
 import { PetSize } from "@prisma/client";
-import { Modal } from "../ui/modal";
+import { Modal } from "@/components/ui/Modal";
 
 type Pet = {
   id: string;

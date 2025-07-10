@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ClientForm } from "./ClientForm";
-import { Modal } from "../ui/modal";
+import { Modal } from "@/components/ui/Modal";
 
 type Client = {
   id: string;

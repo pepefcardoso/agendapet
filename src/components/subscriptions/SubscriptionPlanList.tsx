@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { SubscriptionPlanForm } from "./SubscriptionPlanForm";
-import { Modal } from "../ui/modal";
+import { Modal } from "@/components/ui/Modal";
 import { SubscriptionPlan } from "@prisma/client";
 
 type Service = {

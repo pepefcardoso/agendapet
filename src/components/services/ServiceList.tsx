@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ServiceForm } from "./ServiceForm";
-import { Modal } from "../ui/modal";
+import { Modal } from "@/components/ui/Modal";
 
 type Service = {
   id: string;
